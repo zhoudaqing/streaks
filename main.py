@@ -9,6 +9,7 @@ def f(x):
 
 histProbS = {}      # global history of ProbS() computations
 histE = {}          # global history of E() computations
+histPart = {}
 
 # computes the probability that a sequence of length n with n1-many 1s
 # contains exactly m streaks of length k or more
@@ -34,13 +35,14 @@ def ProbS(k,n,n1,m):
     histProbS[(k,n,n1,m)] = ret
     return ret
 
-# give an array n consisting of the sizes of the various games, an array
+# given an array n consisting of the sizes of the various games, an array
 # n1 of the number of makes in each game, this computes the probability that
 # we get a number of k-streaks greater than or equal to m (a fixed non-negative integer)
 def Pval(k,n,n1,m):
     g = len(n)      # number of games
 
     # first we get all the tuples whose sum is bigger than or equal to m
+    # this needs to be made more efficient
     L = [range(0,math.ceil(x/k)+1) for x in n1]
     M = list(itertools.product(*L))
     i = 0
@@ -53,6 +55,28 @@ def Pval(k,n,n1,m):
     for ms in M:
         ret += np.prod([ProbS(k,n[i],n1[i],ms[i]) for i in range(len(ms))])
     return ret
+
+# returns all possible arrays p of length len(n) such that sum(p) >= m and k*p[i] <= n1[i]
+def partitions(k,n1,m):
+    # should start off by replacing each element of n1 with k times the floor of it divided by k
+    # also no loss in sorting n1:
+    n1.sort()
+    n1 = [k*math.floor(x/k) for x in n1]
+    if (k,tuple(n1),m) in histPart:
+        return histPart[(k,tuple(n1),m)]
+    if len(n1) == 1:
+        ret = [[x] for x in range(m, math.floor(n1[0]/k) + 1)]
+        histPart[(k,tuple(n1),m)] = ret
+        return ret
+
+    p = []
+    # i = number of streaks for first game
+    for i in range(math.floor(n1[0]/k)+1):
+        subparts = partitions(k,n1[1:],max(0,m-i))
+        for sp in subparts:
+            p.append([i] + sp)
+    histPart[(k,tuple(n1),m)] = p
+    return p
 
 def PvalMC(k,n,n1,m,N):
     count = 0
@@ -178,10 +202,10 @@ def calcPval(shotdata,m,k):
         n1.append(sum(shotdata.loc[shotdata['game_date'] == g]['shot_made_flag'].tolist()))
     return Pval(k,n,n1,m)
 
-for s in ['2500plus', 'threes']:
-    DIR = 'data/' + s + '/'
-    RESULTSDIR = 'data/results/' + s + '/'
-    for hc in ['hot', 'cold']:
-        for r in [5, 4, 3]:
-            print(r)
-            createtable(r, hc, DIR, RESULTSDIR)
+# for s in ['2500plus', 'threes']:
+#     DIR = 'data/' + s + '/'
+#     RESULTSDIR = 'data/results/' + s + '/'
+#     for hc in ['hot', 'cold']:
+#         for r in [5, 4, 3]:
+#             print(r)
+#             createtable(r, hc, DIR, RESULTSDIR)
