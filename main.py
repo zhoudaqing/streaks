@@ -43,14 +43,7 @@ def Pval(k,n,n1,m):
 
     # first we get all the tuples whose sum is bigger than or equal to m
     # this needs to be made more efficient
-    L = [range(0,math.ceil(x/k)+1) for x in n1]
-    M = list(itertools.product(*L))
-    i = 0
-    while i < len(M):
-        if sum(M[i]) < m:
-            M.remove(M[i])
-        else:
-            i+=1
+    M = partitions(k,n1,m)
     ret = 0
     for ms in M:
         ret += np.prod([ProbS(k,n[i],n1[i],ms[i]) for i in range(len(ms))])
@@ -195,7 +188,8 @@ def calcPvalMC(shotdata,m,k):
         n1.append(sum(shotdata.loc[shotdata['game_date'] == g]['shot_made_flag'].tolist()))
     return PvalMC(k,n,n1,m,N)
 
-def calcPval(shotdata,m,k):
+# sim flag is whether or not to simulate the computation
+def calcPval(shotdata,m,k,d,sim=False,N=1000):
     n,n1 = [],[]
     for g in list(OrderedDict.fromkeys(shotdata['game_date'])):
         n.append(len(shotdata.loc[shotdata['game_date'] == g]['shot_made_flag'].tolist()))
